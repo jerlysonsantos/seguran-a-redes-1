@@ -1,0 +1,41 @@
+ifconfig eth0 198.51.100.1/30
+ifconfig eth1 10.0.1.1/24
+ifconfig eth2 10.0.2.1/24
+ifconfig eth3 10.0.3.1/24
+route add default gw 198.51.100.2
+
+# Firewall de perimetro: bloqueia por padrao
+iptables -P INPUT DROP
+iptables -P FORWARD DROP
+iptables -P OUTPUT DROP
+
+# Respostas de conexoes permitidas
+iptables -A FORWARD -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+
+# LAN -> Internet
+iptables -A FORWARD -i eth1 -o eth0 -m conntrack --ctstate NEW -j ACCEPT
+
+# LAN -> Web da DMZ
+iptables -A FORWARD -i eth1 -o eth2 -d 10.0.2.10 -p tcp -m multiport --dports 80,443 -m conntrack --ctstate NEW -j ACCEPT
+
+# LAN -> DNS da DMZ
+iptables -A FORWARD -i eth1 -o eth2 -d 10.0.2.11 -p udp --dport 53 -m conntrack --ctstate NEW -j ACCEPT
+iptables -A FORWARD -i eth1 -o eth2 -d 10.0.2.11 -p tcp --dport 53 -m conntrack --ctstate NEW -j ACCEPT
+
+# Internet -> Web da DMZ
+iptables -A FORWARD -i eth0 -o eth2 -d 10.0.2.10 -p tcp -m multiport --dports 80,443 -m conntrack --ctstate NEW -j ACCEPT
+
+# Internet -> LAN e DMZ -> LAN (novas conexoes): bloqueados pela politica DROP
+
+
+# Regras firewall testes
+
+# iptables -I FORWARD 1 -i eth1 -m mac --mac-source 0e:05:fc:f4:1b:02  -j DROP
+# iptables -I INPUT   1 -i eth1 -m mac --mac-source 0e:05:fc:f4:1b:02 -j DROP
+
+# iptables -I FORWARD 1 -i eth1 -o eth0 -p icmp -j DROP
+
+# iptables -I FORWARD 1 -i eth1 -d 203.0.113.10 -j DROP
+
+# iptables -I FORWARD 1 -i eth1 -p tcp -m multiport --dports 6881:6889,6969 -j DROP
+# iptables -I FORWARD 1 -i eth1 -p udp -m multiport --dports 6881:6889,6969 -j DROP
