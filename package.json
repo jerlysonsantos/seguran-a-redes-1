@@ -1,0 +1,17 @@
+{
+  "name": "lab-atividade-01",
+  "private": true,
+  "description": "Testes automatizados do lab Kathara Firewall + DMZ",
+  "scripts": {
+    "lab:up": "kathara lclean; kathara lstart --noterminals",
+    "lab:wait": "node scripts/wait-lab.js",
+    "lab:down": "kathara lclean",
+    "test:jest": "jest",
+    "test": "npm run lab:up && npm run lab:wait && npm run test:jest; status=$?; npm run lab:down; exit $status",
+    "test:verbose": "LAB_VERBOSE=1 npm test",
+    "test:evidence": "LAB_EVIDENCE=1 npm test"
+  },
+  "devDependencies": {
+    "jest": "^30.5.2"
+  }
+}
