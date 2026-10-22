@@ -3,12 +3,13 @@ const { web, fw, INTERNET } = require('./lab');
 // Cenario: o web da DMZ foi comprometido e o atacante executa comandos nele
 describe('Defense in Depth: web da DMZ comprometido', () => {
   test('segmentacao + regras stateful: web nao inicia conexao com a LAN', async () => {
-    const eth2 = await fw.tcpdump('eth2', 'src host 10.0.2.10');
-    const eth1 = await fw.tcpdump('eth1', 'src host 10.0.2.10');
+    const eth2 = await fw.tcpdump('eth2', 'src host 10.0.2.20');
+    const eth1 = await fw.tcpdump('eth1', 'src host 10.0.2.20');
 
-    expect(web.ping('10.0.1.10').ok).toBe(false);
-    expect(web.ping('10.0.1.11').ok).toBe(false);
-    expect(web.tcp('10.0.1.10', 22)).toBe('BLOCKED');
+    expect(web.ping('10.0.4.10').ok).toBe(false);
+    expect(web.ping('10.0.4.11').ok).toBe(false);
+    expect(web.tcp('10.0.4.10', 22)).toBe('BLOCKED');
+    expect(web.tcp('10.0.1.20', 3128)).toBe('BLOCKED');
 
     // as tentativas chegam ao fw, mas nada sai para a LAN
     expect((await eth2.stop()).length).toBeGreaterThan(0);
@@ -16,7 +17,7 @@ describe('Defense in Depth: web da DMZ comprometido', () => {
   });
 
   test('filtragem de saida: web nao acessa a Internet (sem C2 ou exfiltracao)', async () => {
-    const eth0 = await fw.tcpdump('eth0', 'src host 10.0.2.10');
+    const eth0 = await fw.tcpdump('eth0', 'src host 10.0.2.20');
 
     expect(web.ping(INTERNET).ok).toBe(false);
     expect(web.tcp('1.1.1.1', 80)).toBe('BLOCKED');

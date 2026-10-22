@@ -1,0 +1,27 @@
+ifconfig eth0 10.0.1.20/24
+ifconfig eth1 10.0.4.1/24
+route add default gw 10.0.1.1
+
+# DNS padrao do host (npm run lab:up grava em shared/host-dns); o Squid usa este resolv.conf
+echo "nameserver $(cat /shared/host-dns 2>/dev/null || echo 8.8.8.8)" > /etc/resolv.conf
+
+# Proxy como gateway dos PCs: so encaminha o necessario
+iptables -P FORWARD DROP
+iptables -A FORWARD -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+
+# HTTPS: roteado sem inspecao (o Squid nao intercepta TLS)
+iptables -A FORWARD -i eth1 -o eth0 -p tcp --dport 443 -m conntrack --ctstate NEW -j ACCEPT
+
+# DNS padrao (8.8.8.8)
+iptables -A FORWARD -i eth1 -o eth0 -p udp --dport 53 -m conntrack --ctstate NEW -j ACCEPT
+iptables -A FORWARD -i eth1 -o eth0 -p tcp --dport 53 -m conntrack --ctstate NEW -j ACCEPT
+
+# DMZ: acesso direto, o fw continua filtrando
+iptables -A FORWARD -i eth1 -o eth0 -d 10.0.2.0/24 -m conntrack --ctstate NEW -j ACCEPT
+
+# Proxy transparente: HTTP (80) dos PCs para a Internet e desviado para o Squid
+iptables -t nat -A PREROUTING -i eth1 -p tcp --dport 80 ! -d 10.0.0.0/8 -j REDIRECT --to-port 3129
+
+# Squid (imagem lab-proxy): cria os diretorios do cache em disco e sobe
+squid -N -z
+squid

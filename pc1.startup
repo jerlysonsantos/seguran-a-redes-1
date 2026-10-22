@@ -1,2 +1,4 @@
-ifconfig eth0 10.0.1.10/24
-route add default gw 10.0.1.1
+ifconfig eth0 10.0.4.10/24
+route add default gw 10.0.4.1
+# DNS padrao do host (npm run lab:up grava em shared/host-dns)
+echo "nameserver $(cat /shared/host-dns 2>/dev/null || echo 8.8.8.8)" > /etc/resolv.conf

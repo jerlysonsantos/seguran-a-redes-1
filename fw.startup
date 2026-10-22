@@ -4,6 +4,9 @@ ifconfig eth2 10.0.2.1/24
 ifconfig eth3 10.0.3.1/24
 route add default gw 198.51.100.2
 
+# Estacoes (pc1, pc2) ficam atras do proxy
+route add -net 10.0.4.0/24 gw 10.0.1.20
+
 # Firewall de perimetro: bloqueia por padrao
 iptables -P INPUT DROP
 iptables -P FORWARD DROP

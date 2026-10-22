@@ -1,33 +1,34 @@
-const { pc1, pc2, web, fw, INTERNET } = require("./lab");
+const { pc1, pc2, fw, proxy, HTTPS_INTERNET } = require('./lab');
 
-describe("Etapa 1 - Baseline: conectividade e encaminhamento", () => {
-  beforeAll(() => web.serveHttp(80, "WEB DMZ"));
-
-  test("LAN -> Internet (pc1 e pc2)", () => {
-    expect(pc1.ping(INTERNET).ok).toBe(true);
-    expect(pc2.ping(INTERNET).ok).toBe(true);
+// Topologia:
+//   pc1 (10.0.4.10), pc2 (10.0.4.11) -> proxy (gw 10.0.4.1 / 10.0.1.20) -> fw -> r0 -> Internet
+//   DMZ: rp (SWAG, 10.0.2.10) -> web (Apache, 10.0.2.20)
+describe('Etapa 1 - Baseline: conectividade e encaminhamento', () => {
+  test('LAN -> Internet via proxy (HTTPS roteado)', () => {
+    expect(pc1.curl(HTTPS_INTERNET).ok).toBe(true);
+    expect(pc2.curl(HTTPS_INTERNET).ok).toBe(true);
   });
 
-  test("LAN -> Web da DMZ", () => {
-    expect(pc1.curl("http://10.0.2.10").body).toBe("WEB DMZ");
+  test('LAN -> site da DMZ pelo proxy reverso (rp)', () => {
+    expect(pc1.curl('http://10.0.2.10').body).toContain('WEB DMZ');
+    expect(pc2.curl('http://10.0.2.10').body).toContain('WEB DMZ');
   });
 
-  test("LAN -> DNS da DMZ (porta 53 alcancavel)", () => {
-    expect(pc1.tcp("10.0.2.11", 53)).not.toBe("BLOCKED");
+  test('LAN -> DNS da DMZ (porta 53 alcancavel)', () => {
+    expect(pc1.tcp('10.0.2.11', 53)).not.toBe('BLOCKED');
   });
 
-  test("fw recebe o ping na LAN (eth1) e encaminha para a WAN (eth0)", async () => {
-    const eth1 = await fw.tcpdump("eth1", `icmp and host ${INTERNET}`);
-    const eth0 = await fw.tcpdump("eth0", `icmp and host ${INTERNET}`);
+  test('o proxy e o fw encaminham o trafego do pc1 ate a WAN', async () => {
+    const filter = 'tcp port 443 and host 10.0.4.10';
+    const pcSide = await proxy.tcpdump('eth1', filter);
+    const lan = await fw.tcpdump('eth1', filter);
+    const wan = await fw.tcpdump('eth0', filter);
 
-    pc1.ping(INTERNET);
+    pc1.curl(HTTPS_INTERNET);
 
-    expect(await eth1.stop()).toContainPacket(
-      `10.0.1.10 > ${INTERNET}`,
-      "echo request",
-    );
-    const wan = await eth0.stop();
-    expect(wan).toContainPacket(`10.0.1.10 > ${INTERNET}`, "echo request");
-    expect(wan).toContainPacket(`${INTERNET} > 10.0.1.10`, "echo reply");
+    // o mesmo pacote passa pelas tres interfaces: proxy (lado dos PCs) -> fw LAN -> fw WAN
+    expect(await pcSide.stop()).toContainPacket('10.0.4.10.', '.443:');
+    expect(await lan.stop()).toContainPacket('10.0.4.10.', '.443:');
+    expect(await wan.stop()).toContainPacket('10.0.4.10.', '.443:');
   });
 });

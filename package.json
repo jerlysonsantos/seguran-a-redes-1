@@ -3,7 +3,8 @@
   "private": true,
   "description": "Testes automatizados do lab Kathara Firewall + DMZ",
   "scripts": {
-    "lab:up": "kathara lclean; kathara lstart --noterminals",
+    "images:build": "docker build -t lab-rp images/rp && docker build -t lab-web images/web && docker build -t lab-proxy images/proxy",
+    "lab:up": "npm run images:build && bash scripts/host-dns.sh && kathara lclean && kathara lstart --noterminals",
     "lab:wait": "node scripts/wait-lab.js",
     "lab:down": "kathara lclean",
     "test:jest": "jest",

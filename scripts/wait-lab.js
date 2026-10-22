@@ -1,11 +1,13 @@
 const { run } = require("../tests/lab");
 
 const CHECKS = {
-  pc1: ["ip route", "default via 10.0.1.1"],
-  pc2: ["ip route", "default via 10.0.1.1"],
-  web: ["ip route", "default via 10.0.2.1"],
+  pc1: ["ip route", "default via 10.0.4.1"],
+  pc2: ["ip route", "default via 10.0.4.1"],
+  rp: ["curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1", "200"],
+  web: ["ss -ltn", ":80 "],
   dns: ["ip route", "default via 10.0.2.1"],
   adm: ["ip route", "default via 10.0.3.1"],
+  proxy: ["ss -ltn", ":3128 "],
   r0: ["iptables -t nat -S POSTROUTING", "MASQUERADE"],
   fw: ["iptables -S FORWARD", "-i eth0 -o eth2"],
 };

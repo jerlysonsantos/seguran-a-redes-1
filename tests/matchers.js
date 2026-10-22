@@ -1,7 +1,3 @@
-/**
- * expect(lines).toContainPacket('10.0.1.10 >', 'echo request')
- * Passes when some tcpdump line contains all the given fragments.
- */
 expect.extend({
   toContainPacket(lines, ...fragments) {
     const pass = lines.some((l) => fragments.every((f) => l.includes(f)));
